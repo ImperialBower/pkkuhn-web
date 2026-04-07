@@ -1,9 +1,9 @@
 [package]
-name = "pkgto-web"
+name = "pkkuhn-web"
 version = "0.0.39"
 authors = ["electronicpanopticon <gaoler@electronicpanopticon.com>"]
 edition = "2024"
-rust-version = "1.85.0"
+rust-version = "1.91.0"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/ImperialBower/pkkuhn-web"
 description = "Interactive Kuhn poker trainer powered by pkcore + WebAssembly."
