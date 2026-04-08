@@ -1,6 +1,6 @@
 # EPIC-WEB-03: CFR Convergence Panel
 
-**Status: Open**
+**Status: Complete**
 **Depends on:** EPIC-WEB-01, EPIC-WEB-02
 
 ---
@@ -114,8 +114,8 @@ These thresholds match the acceptance criteria in `pkcore` EPIC-17, Phase 3.
 
 ## Acceptance criteria
 
-- [ ] `run_cfr(1000)` returns exploitability < 0.05 (matches pkcore EPIC-17 target).
-- [ ] `run_cfr(100000)` returns exploitability < 0.002.
-- [ ] Strategy comparison table shows all 12 info sets with both learned and Nash columns.
-- [ ] UI does not freeze at 100 000 iterations (verify on mid-range hardware).
-- [ ] Panel is collapsed by default.
+- [x] `run_cfr(1000)` returns exploitability < 0.05 (matches pkcore EPIC-17 target).
+- [x] `run_cfr(100000)` returns exploitability < 0.002.
+- [x] Strategy comparison table shows all 12 info sets with both learned and Nash columns.
+- [x] UI does not freeze at 100 000 iterations (verify on mid-range hardware).
+- [x] Panel is collapsed by default.

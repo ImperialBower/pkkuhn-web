@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(cargo metadata:*)",
+      "Bash(python3 -c \"import sys,json; m=json.load\\(sys.stdin\\); [print\\(p['manifest_path']\\) for p in m['packages'] if 'pkcore' in p['name']]\")",
+      "Bash(wasm-pack build:*)"
     ]
   }
 }

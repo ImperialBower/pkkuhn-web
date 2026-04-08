@@ -1,4 +1,4 @@
-use pkcore::games::kuhn::{KuhnAction, KuhnCard, KuhnHistory, KuhnInfoSet, KuhnState, KuhnStrategy};
+use pkcore::games::kuhn::{KuhnAction, KuhnCard, KuhnCfr, KuhnHistory, KuhnInfoSet, KuhnState, KuhnStrategy};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -109,6 +109,28 @@ struct StrategyRow {
 #[derive(Serialize)]
 struct StrategyTable {
     rows: Vec<StrategyRow>,
+}
+
+#[derive(Serialize)]
+struct CfrRow {
+    player: u8,
+    history: String,
+    card: String,
+    learned: Vec<ProbEntry>,
+    nash: Vec<ProbEntry>,
+}
+
+#[derive(Serialize)]
+struct CfrResult {
+    iterations: u32,
+    exploitability: f64,
+    rows: Vec<CfrRow>,
+}
+
+#[derive(Serialize)]
+struct ExploitResult {
+    iterations: u32,
+    exploitability: f64,
 }
 
 #[derive(Serialize)]
@@ -350,4 +372,69 @@ pub fn full_strategy_table(alpha: f64) -> String {
     }
 
     serde_json::to_string(&StrategyTable { rows }).unwrap_or_default()
+}
+
+/// Run `iterations` of vanilla CFR and return the learned strategy compared
+/// to the exact Nash solution (alpha = 1/3).
+///
+/// Returns JSON:
+/// `{ iterations, exploitability, rows: [{ player, history, card, learned, nash }] }`
+#[wasm_bindgen]
+pub fn run_cfr(iterations: u32) -> String {
+    let mut cfr = KuhnCfr::new();
+    cfr.train(iterations);
+    let learned = cfr.average_strategy();
+    let exploitability = cfr.exploitability();
+
+    let nash = match KuhnStrategy::gto(1.0 / 3.0) {
+        Ok(s) => s,
+        Err(e) => return err(&format!("Nash strategy error: {e}")),
+    };
+
+    let groups: &[(u8, &str)] = &[
+        (0, ""),
+        (1, "Check"),
+        (1, "Bet"),
+        (0, "Check,Bet"),
+    ];
+    let cards = [KuhnCard::Jack, KuhnCard::Queen, KuhnCard::King];
+
+    let mut rows = Vec::with_capacity(12);
+    for &(player, hist_str) in groups {
+        let hist = parse_history(hist_str).expect("static history string is always valid");
+        for &card in &cards {
+            let info_set = KuhnInfoSet::new(card, hist.clone());
+            let learned_probs = learned.action_probs(&info_set);
+            let nash_probs = nash.action_probs(&info_set);
+            rows.push(CfrRow {
+                player,
+                history: hist_str.to_string(),
+                card: card.to_string(),
+                learned: learned_probs
+                    .iter()
+                    .map(|(a, p)| ProbEntry { action: a.to_string(), prob: *p })
+                    .collect(),
+                nash: nash_probs
+                    .iter()
+                    .map(|(a, p)| ProbEntry { action: a.to_string(), prob: *p })
+                    .collect(),
+            });
+        }
+    }
+
+    serde_json::to_string(&CfrResult { iterations, exploitability, rows }).unwrap_or_default()
+}
+
+/// Return exploitability after `iterations` of vanilla CFR (no strategy rows).
+///
+/// Returns JSON: `{ iterations, exploitability }`
+#[wasm_bindgen]
+pub fn exploitability_at(iterations: u32) -> String {
+    let mut cfr = KuhnCfr::new();
+    cfr.train(iterations);
+    serde_json::to_string(&ExploitResult {
+        iterations,
+        exploitability: cfr.exploitability(),
+    })
+    .unwrap_or_default()
 }
