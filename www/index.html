@@ -443,6 +443,221 @@
       flex-shrink: 0;
     }
 
+    /* ── CFR panel ─────────────────────────────────────────────────────── */
+
+    .cfr-wrap {
+      width: 100%;
+      max-width: 480px;
+      margin-top: 1.25rem;
+      background: #0f1f0f;
+      border: 1px solid #2a4a2a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .cfr-wrap summary {
+      list-style: none;
+      padding: 0.8rem 1.2rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      gap: 0.5rem;
+    }
+
+    .cfr-wrap summary::-webkit-details-marker { display: none; }
+
+    .cfr-toggle-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #4a6a4a;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    .cfr-toggle-arrow {
+      font-size: 0.58rem;
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+
+    .cfr-wrap[open] .cfr-toggle-arrow { transform: rotate(90deg); }
+
+    .cfr-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .cfr-select {
+      background: #1a3a1a;
+      border: 1px solid #2a5a2a;
+      border-radius: 5px;
+      color: #90b090;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.4rem;
+      cursor: pointer;
+    }
+
+    .cfr-btn-sm {
+      padding: 0.2rem 0.65rem;
+      font-size: 0.75rem;
+      border-radius: 5px;
+      flex: 0;
+      min-width: 0;
+    }
+
+    .cfr-btn-run  { background: #2a4a2a; color: #90c090; border: 1px solid #3a6a3a; }
+    .cfr-btn-step { background: #4a3a0a; color: #f0c040; border: 1px solid #7a6a1a; }
+    .cfr-btn-run:hover:not(:disabled)  { filter: brightness(1.2); }
+    .cfr-btn-step:hover:not(:disabled) { filter: brightness(1.2); }
+
+    .cfr-body {
+      padding: 0 1rem 0.75rem;
+      border-top: 1px solid #1a3a1a;
+    }
+
+    .cfr-idle {
+      font-size: 0.78rem;
+      color: #3a5a3a;
+      margin-top: 0.6rem;
+    }
+
+    .cfr-exploit-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-top: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .cfr-exploit-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #4a6a4a;
+    }
+
+    .cfr-exploit-val {
+      font-size: 1rem;
+      font-weight: 700;
+      transition: color 0.3s;
+    }
+
+    .cfr-exploit-val.red    { color: #e05050; }
+    .cfr-exploit-val.yellow { color: #f0c040; }
+    .cfr-exploit-val.green  { color: #50c878; }
+
+    .cfr-exploit-hint {
+      font-size: 0.68rem;
+      color: #3a5a3a;
+    }
+
+    .cfr-iter-badge {
+      font-size: 0.68rem;
+      color: #4a6a4a;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .cfr-section { margin-top: 0.6rem; }
+
+    .cfr-section-header {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #3a5a3a;
+      margin-bottom: 0.25rem;
+      padding-bottom: 0.15rem;
+      border-bottom: 1px solid #1a3a1a;
+    }
+
+    .cfr-col-headers {
+      display: grid;
+      grid-template-columns: 14px 1fr 1fr;
+      gap: 0.4rem;
+      padding: 0 0.25rem;
+      margin-bottom: 0.1rem;
+    }
+
+    .cfr-col-hdr {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #2a4a2a;
+      text-align: center;
+    }
+
+    .cfr-card-row {
+      display: grid;
+      grid-template-columns: 14px 1fr 1fr;
+      gap: 0.4rem;
+      padding: 0.1rem 0.25rem;
+      border-radius: 4px;
+    }
+
+    .cfr-card-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-align: center;
+      align-self: center;
+    }
+
+    .cfr-card-label.jack  { color: #a0c8ff; }
+    .cfr-card-label.queen { color: #f08080; }
+    .cfr-card-label.king  { color: #f0c040; }
+
+    .cfr-actions-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .cfr-action {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      min-width: 0;
+    }
+
+    .cfr-act-label {
+      font-size: 0.65rem;
+      color: #5a8a6a;
+      width: 32px;
+      flex-shrink: 0;
+    }
+
+    .cfr-bar-wrap {
+      flex: 1;
+      height: 4px;
+      background: #1e3a1e;
+      border-radius: 2px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .cfr-bar { height: 100%; border-radius: 2px; transition: width 0.3s; }
+    .cfr-bar.check { background: #3a6a3a; }
+    .cfr-bar.bet   { background: #c09020; }
+    .cfr-bar.fold  { background: #804040; }
+    .cfr-bar.call  { background: #20804a; }
+
+    .cfr-pct {
+      font-size: 0.62rem;
+      color: #4a7a5a;
+      width: 30px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .cfr-nash-col .cfr-bar { opacity: 0.4; }
+    .cfr-nash-col .cfr-act-label { color: #3a5a4a; }
+    .cfr-nash-col .cfr-pct { color: #3a5a4a; }
+
     /* ── Mobile adjustments ───────────────────────────────────────────── */
 
     @media (max-width: 360px) {
@@ -453,6 +668,9 @@
       }
       /* Tighten strategy body padding so bars have more room */
       .strategy-body {
+        padding: 0 0.5rem 0.75rem;
+      }
+      .cfr-body {
         padding: 0 0.5rem 0.75rem;
       }
     }
@@ -554,6 +772,29 @@
   <div class="strategy-body" id="strategy-body"></div>
 </details>
 
+<!-- CFR Convergence panel (collapsed by default) -->
+<details class="cfr-wrap" id="cfr-wrap">
+  <summary>
+    <span class="cfr-toggle-label">
+      <span class="cfr-toggle-arrow">▶</span>
+      CFR Convergence
+    </span>
+    <span class="cfr-controls">
+      <select id="cfr-preset" class="cfr-select">
+        <option value="100">100</option>
+        <option value="1000" selected>1 000</option>
+        <option value="10000">10 000</option>
+        <option value="100000">100 000</option>
+      </select>
+      <button class="btn cfr-btn-sm cfr-btn-run"  id="cfr-run" disabled>Run</button>
+      <button class="btn cfr-btn-sm cfr-btn-step" id="cfr-step" disabled>Step</button>
+    </span>
+  </summary>
+  <div class="cfr-body" id="cfr-body">
+    <p class="cfr-idle">Click Run to train CFR and compare with the Nash solution.</p>
+  </div>
+</details>
+
 <footer>
   <a href="https://github.com/ImperialBower/pkkuhn-web" target="_blank" rel="noopener">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -564,7 +805,7 @@
 </footer>
 
 <script type="module">
-import init, { deal, apply_action, gto_action, p0_hint, full_strategy_table } from './pkg/pkkuhn_web.js';
+import init, { deal, apply_action, gto_action, p0_hint, full_strategy_table, run_cfr, exploitability_at } from './pkg/pkkuhn_web.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -598,6 +839,10 @@ const strategyAlphaNote = document.getElementById('strategy-alpha-note');
 const alphaSlider = document.getElementById('alpha-slider');
 const alphaDisplay = document.getElementById('alpha-display');
 const alphaHint   = document.getElementById('alpha-hint');
+const cfrBody     = document.getElementById('cfr-body');
+const cfrRunBtn   = document.getElementById('cfr-run');
+const cfrStepBtn  = document.getElementById('cfr-step');
+const cfrPreset   = document.getElementById('cfr-preset');
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
@@ -608,6 +853,8 @@ async function boot() {
     renderStrategyTable();
     renderActionArea(['deal']);
     setStatus('Deal to start a new hand.');
+    cfrRunBtn.disabled = false;
+    cfrStepBtn.disabled = false;
   } catch (e) {
     setStatus('Failed to load WASM: ' + String(e));
   }
@@ -1022,6 +1269,169 @@ function endHand(payoff) {
   const dealBtn = document.getElementById('btn-deal');
   if (dealBtn) dealBtn.textContent = 'Deal Again';
 }
+
+// ── CFR Convergence panel ─────────────────────────────────────────────────────
+
+const CFR_SECTION_LABELS = {
+  '0:':          'P0 opening (first to act)',
+  '1:Check':     'P1 after P0 checks',
+  '1:Bet':       'P1 after P0 bets',
+  '0:Check,Bet': 'P0 facing check \u2192 bet',
+};
+
+function exploitClass(val) {
+  if (val > 0.05)  return 'red';
+  if (val > 0.005) return 'yellow';
+  return 'green';
+}
+
+function makeCfrAction(action, prob) {
+  const pct = (prob * 100).toFixed(1);
+
+  const actionEl = document.createElement('div');
+  actionEl.className = 'cfr-action';
+
+  const lbl = document.createElement('span');
+  lbl.className = 'cfr-act-label';
+  lbl.textContent = action;
+
+  const barWrap = document.createElement('div');
+  barWrap.className = 'cfr-bar-wrap';
+  const bar = document.createElement('div');
+  bar.className = 'cfr-bar ' + action.toLowerCase();
+  bar.style.width = pct + '%';
+  barWrap.appendChild(bar);
+
+  const pctEl = document.createElement('span');
+  pctEl.className = 'cfr-pct';
+  pctEl.textContent = pct + '%';
+
+  actionEl.appendChild(lbl);
+  actionEl.appendChild(barWrap);
+  actionEl.appendChild(pctEl);
+  return actionEl;
+}
+
+function renderCfrResult(data) {
+  while (cfrBody.firstChild) cfrBody.removeChild(cfrBody.firstChild);
+
+  // Exploitability display
+  const exploitRow = document.createElement('div');
+  exploitRow.className = 'cfr-exploit-row';
+
+  const exploitLabel = document.createElement('span');
+  exploitLabel.className = 'cfr-exploit-label';
+  exploitLabel.textContent = 'Exploitability';
+
+  const exploitVal = document.createElement('span');
+  exploitVal.className = 'cfr-exploit-val ' + exploitClass(data.exploitability);
+  exploitVal.textContent = data.exploitability.toFixed(4);
+
+  const exploitHint = document.createElement('span');
+  exploitHint.className = 'cfr-exploit-hint';
+  exploitHint.textContent = data.exploitability > 0.05
+    ? '(target < 0.050)'
+    : data.exploitability > 0.005
+    ? '(target < 0.005)'
+    : '(converged \u2264 0.005)';
+
+  exploitRow.appendChild(exploitLabel);
+  exploitRow.appendChild(exploitVal);
+  exploitRow.appendChild(exploitHint);
+  cfrBody.appendChild(exploitRow);
+
+  const badge = document.createElement('p');
+  badge.className = 'cfr-iter-badge';
+  badge.textContent = 'After ' + data.iterations.toLocaleString() + ' iterations';
+  cfrBody.appendChild(badge);
+
+  // Comparison table
+  let lastGroupKey = null;
+  let sectionEl = null;
+
+  for (const row of data.rows) {
+    const groupKey = row.player + ':' + row.history;
+
+    if (groupKey !== lastGroupKey) {
+      sectionEl = document.createElement('div');
+      sectionEl.className = 'cfr-section';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'cfr-section-header';
+      hdr.textContent = CFR_SECTION_LABELS[groupKey] ?? groupKey;
+      sectionEl.appendChild(hdr);
+
+      const colHdrs = document.createElement('div');
+      colHdrs.className = 'cfr-col-headers';
+      const emptySpan = document.createElement('span');
+      const learnedHdr = document.createElement('span');
+      learnedHdr.className = 'cfr-col-hdr';
+      learnedHdr.textContent = 'Learned';
+      const nashHdr = document.createElement('span');
+      nashHdr.className = 'cfr-col-hdr';
+      nashHdr.textContent = 'Nash \u03b1=1/3';
+      colHdrs.appendChild(emptySpan);
+      colHdrs.appendChild(learnedHdr);
+      colHdrs.appendChild(nashHdr);
+      sectionEl.appendChild(colHdrs);
+
+      cfrBody.appendChild(sectionEl);
+      lastGroupKey = groupKey;
+    }
+
+    const cardRow = document.createElement('div');
+    cardRow.className = 'cfr-card-row';
+
+    const cardLabel = document.createElement('span');
+    cardLabel.className = 'cfr-card-label ' + (CARD_CLS[row.card] ?? '');
+    cardLabel.textContent = row.card;
+    cardRow.appendChild(cardLabel);
+
+    const learnedCol = document.createElement('div');
+    learnedCol.className = 'cfr-actions-col';
+    for (const { action, prob } of row.learned) {
+      learnedCol.appendChild(makeCfrAction(action, prob));
+    }
+    cardRow.appendChild(learnedCol);
+
+    const nashCol = document.createElement('div');
+    nashCol.className = 'cfr-actions-col cfr-nash-col';
+    for (const { action, prob } of row.nash) {
+      nashCol.appendChild(makeCfrAction(action, prob));
+    }
+    cardRow.appendChild(nashCol);
+
+    sectionEl.appendChild(cardRow);
+  }
+}
+
+let cfrStepping = false;
+
+cfrRunBtn.addEventListener('click', () => {
+  if (!wasmReady || cfrStepping) return;
+  const n = parseInt(cfrPreset.value, 10);
+  const data = JSON.parse(run_cfr(n));
+  if (!data.error) renderCfrResult(data);
+});
+
+cfrStepBtn.addEventListener('click', async () => {
+  if (!wasmReady || cfrStepping) return;
+  cfrStepping = true;
+  cfrRunBtn.disabled = true;
+  cfrStepBtn.textContent = '\u2026';
+
+  document.getElementById('cfr-wrap').open = true;
+
+  for (const n of [100, 1000, 10000, 100000]) {
+    const data = JSON.parse(run_cfr(n));
+    if (!data.error) renderCfrResult(data);
+    await new Promise(r => setTimeout(r, 900));
+  }
+
+  cfrStepping = false;
+  cfrRunBtn.disabled = false;
+  cfrStepBtn.textContent = 'Step';
+});
 </script>
 
 </body>
