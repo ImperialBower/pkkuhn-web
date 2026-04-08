@@ -309,6 +309,154 @@
       line-height: 1.4;
     }
 
+    /* ── Nash strategy table ───────────────────────────────────────────── */
+
+    .strategy-wrap {
+      width: 100%;
+      max-width: 480px;
+      margin-top: 1.25rem;
+      background: #0f1f0f;
+      border: 1px solid #2a4a2a;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .strategy-wrap summary {
+      list-style: none;
+      padding: 0.8rem 1.2rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .strategy-wrap summary::-webkit-details-marker { display: none; }
+
+    .strategy-toggle-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #4a6a4a;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .strategy-toggle-arrow {
+      font-size: 0.58rem;
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+
+    .strategy-wrap[open] .strategy-toggle-arrow { transform: rotate(90deg); }
+
+    .strategy-alpha-note {
+      font-size: 0.72rem;
+      color: #3a5a3a;
+    }
+
+    .strategy-body {
+      padding: 0 1rem 0.75rem;
+      border-top: 1px solid #1a3a1a;
+    }
+
+    .st-section { margin-top: 0.6rem; }
+
+    .st-section-header {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #3a5a3a;
+      margin-bottom: 0.25rem;
+      padding-bottom: 0.15rem;
+      border-bottom: 1px solid #1a3a1a;
+    }
+
+    .st-card-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.15rem 0.25rem;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .st-card-row.active {
+      background: #0e1e2e;
+      outline: 1px solid #2a4a7a;
+    }
+
+    .st-card-label {
+      width: 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .st-card-label.jack  { color: #a0c8ff; }
+    .st-card-label.queen { color: #f08080; }
+    .st-card-label.king  { color: #f0c040; }
+
+    .st-actions {
+      display: flex;
+      flex: 1;
+      gap: 0.4rem;
+    }
+
+    .st-action {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .st-act-label {
+      font-size: 0.68rem;
+      color: #5a8a6a;
+      width: 38px;
+      flex-shrink: 0;
+    }
+
+    .st-bar-wrap {
+      flex: 1;
+      height: 5px;
+      background: #1e3a1e;
+      border-radius: 3px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .st-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
+    .st-bar.check { background: #3a6a3a; }
+    .st-bar.bet   { background: #c09020; }
+    .st-bar.fold  { background: #804040; }
+    .st-bar.call  { background: #20804a; }
+
+    .st-pct {
+      font-size: 0.65rem;
+      color: #4a7a5a;
+      width: 34px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── Mobile adjustments ───────────────────────────────────────────── */
+
+    @media (max-width: 360px) {
+      /* Stack alpha legend vertically on very narrow screens */
+      .alpha-legend {
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      /* Tighten strategy body padding so bars have more room */
+      .strategy-body {
+        padding: 0 0.5rem 0.75rem;
+      }
+    }
+
     /* ── Footer ────────────────────────────────────────────────────────── */
 
     footer {
@@ -394,6 +542,18 @@
   </p>
 </div>
 
+<!-- Nash strategy table (collapsed by default) -->
+<details class="strategy-wrap" id="strategy-wrap">
+  <summary>
+    <span class="strategy-toggle-label">
+      <span class="strategy-toggle-arrow">▶</span>
+      Nash Strategy Table
+    </span>
+    <span class="strategy-alpha-note" id="strategy-alpha-note">α = 1/3</span>
+  </summary>
+  <div class="strategy-body" id="strategy-body"></div>
+</details>
+
 <footer>
   <a href="https://github.com/ImperialBower/pkkuhn-web" target="_blank" rel="noopener">
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -404,7 +564,7 @@
 </footer>
 
 <script type="module">
-import init, { deal, apply_action, gto_action, p0_hint } from './pkg/pkkuhn_web.js';
+import init, { deal, apply_action, gto_action, p0_hint, full_strategy_table } from './pkg/pkkuhn_web.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -415,6 +575,9 @@ let score = { wins: 0, losses: 0, chips: 0 };
 // Tracks the last info set where P0 acted, so the hint panel can live-update
 // when the alpha slider moves.
 let lastP0HintCard = null, lastP0HintHistory = null;
+
+// Row key for the currently active info set; format: "player:history:card".
+let activeRowKey = null;
 
 const AI_THINK_MS = 700;
 
@@ -428,8 +591,10 @@ const actionArea  = document.getElementById('action-area');
 const potEl       = document.getElementById('pot-chips');
 const aiPanel     = document.getElementById('ai-panel');
 const probRows    = document.getElementById('prob-rows');
-const p0Panel     = document.getElementById('p0-panel');
-const p0ProbRows  = document.getElementById('p0-prob-rows');
+const p0Panel         = document.getElementById('p0-panel');
+const p0ProbRows      = document.getElementById('p0-prob-rows');
+const strategyBody    = document.getElementById('strategy-body');
+const strategyAlphaNote = document.getElementById('strategy-alpha-note');
 const alphaSlider = document.getElementById('alpha-slider');
 const alphaDisplay = document.getElementById('alpha-display');
 const alphaHint   = document.getElementById('alpha-hint');
@@ -440,6 +605,7 @@ async function boot() {
   try {
     await init();
     wasmReady = true;
+    renderStrategyTable();
     renderActionArea(['deal']);
     setStatus('Deal to start a new hand.');
   } catch (e) {
@@ -474,6 +640,7 @@ function updateAlphaDisplay() {
 alphaSlider.addEventListener('input', () => {
   updateAlphaDisplay();
   refreshP0Panel();
+  renderStrategyTable();
 });
 updateAlphaDisplay();
 
@@ -652,6 +819,106 @@ function refreshP0Panel() {
   if (!result.error) showP0Panel(result.probabilities);
 }
 
+// ── Nash strategy table ───────────────────────────────────────────────────────
+
+const SECTION_LABELS = {
+  '0:':          'P0 opening (first to act)',
+  '1:Check':     'P1 after P0 checks',
+  '1:Bet':       'P1 after P0 bets',
+  '0:Check,Bet': 'P0 facing check \u2192 bet',
+};
+const CARD_CLS = { J: 'jack', Q: 'queen', K: 'king' };
+
+function renderStrategyTable() {
+  if (!wasmReady) return;
+  const alpha = alphaValue();
+  const data = JSON.parse(full_strategy_table(alpha));
+  if (data.error) return;
+
+  const a = alpha;
+  strategyAlphaNote.textContent = '\u03b1\u202f=\u202f' +
+    (a > 0.332 ? '1/3' : a < 0.001 ? '0' : a.toFixed(3));
+
+  while (strategyBody.firstChild) strategyBody.removeChild(strategyBody.firstChild);
+
+  let lastGroupKey = null;
+  let sectionEl = null;
+
+  for (const row of data.rows) {
+    const groupKey = row.player + ':' + row.history;
+
+    if (groupKey !== lastGroupKey) {
+      sectionEl = document.createElement('div');
+      sectionEl.className = 'st-section';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'st-section-header';
+      hdr.textContent = SECTION_LABELS[groupKey] ?? groupKey;
+      sectionEl.appendChild(hdr);
+
+      strategyBody.appendChild(sectionEl);
+      lastGroupKey = groupKey;
+    }
+
+    const rowKey = row.player + ':' + row.history + ':' + row.card;
+    const rowEl = document.createElement('div');
+    rowEl.className = 'st-card-row' + (rowKey === activeRowKey ? ' active' : '');
+    rowEl.dataset.rowKey = rowKey;
+
+    const cardLabel = document.createElement('span');
+    cardLabel.className = 'st-card-label ' + (CARD_CLS[row.card] ?? '');
+    cardLabel.textContent = row.card;
+    rowEl.appendChild(cardLabel);
+
+    const actionsEl = document.createElement('div');
+    actionsEl.className = 'st-actions';
+
+    for (const { action, prob } of row.probabilities) {
+      const pct = (prob * 100).toFixed(1);
+
+      const actionEl = document.createElement('div');
+      actionEl.className = 'st-action';
+
+      const actLabel = document.createElement('span');
+      actLabel.className = 'st-act-label';
+      actLabel.textContent = action;
+
+      const barWrap = document.createElement('div');
+      barWrap.className = 'st-bar-wrap';
+      const bar = document.createElement('div');
+      bar.className = 'st-bar ' + action.toLowerCase();
+      bar.style.width = pct + '%';
+      barWrap.appendChild(bar);
+
+      const pctEl = document.createElement('span');
+      pctEl.className = 'st-pct';
+      pctEl.textContent = pct + '%';
+
+      actionEl.appendChild(actLabel);
+      actionEl.appendChild(barWrap);
+      actionEl.appendChild(pctEl);
+      actionsEl.appendChild(actionEl);
+    }
+
+    rowEl.appendChild(actionsEl);
+    sectionEl.appendChild(rowEl);
+  }
+}
+
+function setActiveRow(key) {
+  activeRowKey = key;
+  for (const el of strategyBody.querySelectorAll('.st-card-row')) {
+    el.classList.toggle('active', el.dataset.rowKey === key);
+  }
+}
+
+function clearActiveRow() {
+  activeRowKey = null;
+  for (const el of strategyBody.querySelectorAll('.st-card-row')) {
+    el.classList.remove('active');
+  }
+}
+
 // ── Game flow ─────────────────────────────────────────────────────────────────
 
 function onPlayerAction(action) {
@@ -664,6 +931,7 @@ function onPlayerAction(action) {
 
   disableActions();
   hideAiPanel();
+  clearActiveRow(); // P0 has acted; clear highlight while AI thinks.
 
   // Capture P0's info set before applying the action so the hint panel
   // shows what GTO would have recommended at this decision point.
@@ -714,6 +982,7 @@ function aiTurn() {
   // P0 acts again (check-bet scenario)
   setStatus('Opponent ' + aiAction.toLowerCase() + 's. Your turn.');
   renderActionArea(applied.legal_actions);
+  setActiveRow('0:' + applied.history + ':' + p0Card);
 }
 
 function startHand() {
@@ -734,6 +1003,7 @@ function startHand() {
 
   setStatus('Your turn. You act first.');
   renderActionArea(result.legal_actions);
+  setActiveRow('0::' + p0Card);
 }
 
 function endHand(payoff) {
@@ -747,6 +1017,7 @@ function endHand(payoff) {
   else              setStatus('Chop \u2014 no chips change hands.', 'chop');
 
   updateScore(payoff);
+  clearActiveRow();
   renderActionArea(['deal']);
   const dealBtn = document.getElementById('btn-deal');
   if (dealBtn) dealBtn.textContent = 'Deal Again';

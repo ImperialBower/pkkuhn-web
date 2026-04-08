@@ -1,6 +1,6 @@
 # EPIC-WEB-02: Full Nash Strategy Matrix Panel
 
-**Status: Open**
+**Status: Complete**
 **Depends on:** EPIC-WEB-01 (requires `KuhnStrategy` wired in the shim)
 
 ---
@@ -90,8 +90,8 @@ the full table.
 
 ## Acceptance criteria
 
-- [ ] `full_strategy_table` is exported and returns all 12 info-set rows.
-- [ ] Panel renders correctly at α=0 and α=1/3 (spot-check against EPIC-17 tables).
-- [ ] Alpha slider movement live-updates the table.
-- [ ] Active info set row is highlighted during a hand.
-- [ ] Panel is collapsed by default and does not obstruct the main game table on mobile.
+- [x] `full_strategy_table` is exported and returns all 12 info-set rows.
+- [x] Panel renders correctly at α=0 and α=1/3 (spot-check against EPIC-17 tables).
+- [x] Alpha slider movement live-updates the table.
+- [x] Active info set row is highlighted during a hand.
+- [x] Panel is collapsed by default and does not obstruct the main game table on mobile.
