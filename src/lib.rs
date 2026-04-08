@@ -99,6 +99,19 @@ struct HintResult {
 }
 
 #[derive(Serialize)]
+struct StrategyRow {
+    player: u8,
+    history: String,
+    card: String,
+    probabilities: Vec<ProbEntry>,
+}
+
+#[derive(Serialize)]
+struct StrategyTable {
+    rows: Vec<StrategyRow>,
+}
+
+#[derive(Serialize)]
 struct ErrorResult {
     error: String,
 }
@@ -294,4 +307,47 @@ pub fn p0_hint(p0_card: &str, history: &str, alpha: f64) -> String {
             .collect(),
     })
     .unwrap_or_default()
+}
+
+/// Return the complete GTO strategy table for all 12 info sets at the given alpha.
+///
+/// `alpha` ∈ [0, 1/3] is the bluff-frequency parameter.
+///
+/// Returns JSON: `{ rows: [{ player, history, card, probabilities: [{action, prob}] }] }`
+#[wasm_bindgen]
+pub fn full_strategy_table(alpha: f64) -> String {
+    let alpha = alpha.clamp(0.0, 1.0 / 3.0);
+    let strategy = match KuhnStrategy::gto(alpha) {
+        Ok(s) => s,
+        Err(e) => return err(&format!("Invalid alpha: {e}")),
+    };
+
+    // Four info-set groups in display order.
+    let groups: &[(u8, &str)] = &[
+        (0, ""),
+        (1, "Check"),
+        (1, "Bet"),
+        (0, "Check,Bet"),
+    ];
+    let cards = [KuhnCard::Jack, KuhnCard::Queen, KuhnCard::King];
+
+    let mut rows = Vec::with_capacity(12);
+    for &(player, hist_str) in groups {
+        let hist = parse_history(hist_str).expect("static history string is always valid");
+        for &card in &cards {
+            let info_set = KuhnInfoSet::new(card, hist.clone());
+            let probs = strategy.action_probs(&info_set);
+            rows.push(StrategyRow {
+                player,
+                history: hist_str.to_string(),
+                card: card.to_string(),
+                probabilities: probs
+                    .iter()
+                    .map(|(a, p)| ProbEntry { action: a.to_string(), prob: *p })
+                    .collect(),
+            });
+        }
+    }
+
+    serde_json::to_string(&StrategyTable { rows }).unwrap_or_default()
 }
