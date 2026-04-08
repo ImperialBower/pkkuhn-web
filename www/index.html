@@ -187,9 +187,10 @@
     .btn-fold:hover:not(:disabled)  { filter: brightness(1.2); }
     .btn-deal:hover:not(:disabled)  { filter: brightness(1.1); }
 
-    /* ── AI info panel ─────────────────────────────────────────────────── */
+    /* ── Info panels (AI strategy + P0 hint) ──────────────────────────── */
 
-    .ai-panel {
+    .ai-panel,
+    .p0-panel {
       width: 100%;
       max-width: 480px;
       margin-top: 0.75rem;
@@ -200,11 +201,23 @@
       display: none;
     }
 
+    .p0-panel {
+      border-color: #2a3a5a;
+    }
+
     .ai-panel-title {
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: #4a6a4a;
+      margin-bottom: 0.6rem;
+    }
+
+    .p0-panel-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #4a5a7a;
       margin-bottom: 0.6rem;
     }
 
@@ -359,6 +372,12 @@
   <div id="prob-rows"></div>
 </div>
 
+<!-- P0 GTO hint panel -->
+<div class="p0-panel" id="p0-panel">
+  <div class="p0-panel-title">Your GTO line</div>
+  <div id="p0-prob-rows"></div>
+</div>
+
 <!-- Alpha slider -->
 <div class="alpha-wrap">
   <div class="alpha-header">
@@ -385,13 +404,17 @@
 </footer>
 
 <script type="module">
-import init, { deal, apply_action, gto_action } from './pkg/pkkuhn_web.js';
+import init, { deal, apply_action, gto_action, p0_hint } from './pkg/pkkuhn_web.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let wasmReady = false;
 let p0Card = null, p1Card = null, history = '';
 let score = { wins: 0, losses: 0, chips: 0 };
+
+// Tracks the last info set where P0 acted, so the hint panel can live-update
+// when the alpha slider moves.
+let lastP0HintCard = null, lastP0HintHistory = null;
 
 const AI_THINK_MS = 700;
 
@@ -405,6 +428,8 @@ const actionArea  = document.getElementById('action-area');
 const potEl       = document.getElementById('pot-chips');
 const aiPanel     = document.getElementById('ai-panel');
 const probRows    = document.getElementById('prob-rows');
+const p0Panel     = document.getElementById('p0-panel');
+const p0ProbRows  = document.getElementById('p0-prob-rows');
 const alphaSlider = document.getElementById('alpha-slider');
 const alphaDisplay = document.getElementById('alpha-display');
 const alphaHint   = document.getElementById('alpha-hint');
@@ -446,7 +471,10 @@ function updateAlphaDisplay() {
   }
 }
 
-alphaSlider.addEventListener('input', updateAlphaDisplay);
+alphaSlider.addEventListener('input', () => {
+  updateAlphaDisplay();
+  refreshP0Panel();
+});
 updateAlphaDisplay();
 
 // ── Scoring ───────────────────────────────────────────────────────────────────
@@ -576,6 +604,54 @@ function hideAiPanel() {
   aiPanel.style.display = 'none';
 }
 
+// ── P0 hint panel ─────────────────────────────────────────────────────────────
+
+function showP0Panel(probabilities) {
+  p0Panel.style.display = 'block';
+  while (p0ProbRows.firstChild) p0ProbRows.removeChild(p0ProbRows.firstChild);
+
+  for (const { action, prob } of probabilities) {
+    const pct = (prob * 100).toFixed(1);
+
+    const row = document.createElement('div');
+    row.className = 'prob-row';
+
+    const label = document.createElement('span');
+    label.className = 'prob-label';
+    label.textContent = action;
+
+    const barWrap = document.createElement('div');
+    barWrap.className = 'prob-bar-wrap';
+
+    const bar = document.createElement('div');
+    bar.className = 'prob-bar ' + action.toLowerCase();
+    bar.style.width = pct + '%';
+
+    barWrap.appendChild(bar);
+
+    const pctEl = document.createElement('span');
+    pctEl.className = 'prob-pct';
+    pctEl.textContent = pct + '%';
+
+    row.appendChild(label);
+    row.appendChild(barWrap);
+    row.appendChild(pctEl);
+    p0ProbRows.appendChild(row);
+  }
+}
+
+function hideP0Panel() {
+  p0Panel.style.display = 'none';
+  lastP0HintCard = null;
+  lastP0HintHistory = null;
+}
+
+function refreshP0Panel() {
+  if (!lastP0HintCard || !wasmReady) return;
+  const result = JSON.parse(p0_hint(lastP0HintCard, lastP0HintHistory, alphaValue()));
+  if (!result.error) showP0Panel(result.probabilities);
+}
+
 // ── Game flow ─────────────────────────────────────────────────────────────────
 
 function onPlayerAction(action) {
@@ -588,6 +664,14 @@ function onPlayerAction(action) {
 
   disableActions();
   hideAiPanel();
+
+  // Capture P0's info set before applying the action so the hint panel
+  // shows what GTO would have recommended at this decision point.
+  const historyAtDecision = history;
+  lastP0HintCard    = p0Card;
+  lastP0HintHistory = historyAtDecision;
+  const hint = JSON.parse(p0_hint(p0Card, historyAtDecision, alphaValue()));
+  if (!hint.error) showP0Panel(hint.probabilities);
 
   const result = JSON.parse(apply_action(p0Card, p1Card, history, action));
   if (result.error) { setStatus('Error: ' + result.error); return; }
@@ -634,6 +718,7 @@ function aiTurn() {
 
 function startHand() {
   hideAiPanel();
+  hideP0Panel();
   history = '';
   renderHistory('');
   potEl.textContent = '2';

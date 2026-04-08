@@ -1,4 +1,4 @@
-use pkcore::games::kuhn::{KuhnAction, KuhnCard, KuhnHistory, KuhnState};
+use pkcore::games::kuhn::{KuhnAction, KuhnCard, KuhnHistory, KuhnInfoSet, KuhnState, KuhnStrategy};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -21,9 +21,9 @@ fn parse_card(s: &str) -> Option<KuhnCard> {
 fn parse_action(s: &str) -> Option<KuhnAction> {
     match s {
         "Check" => Some(KuhnAction::Check),
-        "Bet" => Some(KuhnAction::Bet),
-        "Call" => Some(KuhnAction::Call),
-        "Fold" => Some(KuhnAction::Fold),
+        "Bet"   => Some(KuhnAction::Bet),
+        "Call"  => Some(KuhnAction::Call),
+        "Fold"  => Some(KuhnAction::Fold),
         _ => None,
     }
 }
@@ -45,6 +45,21 @@ fn history_to_string(h: &KuhnHistory) -> String {
         .map(std::string::ToString::to_string)
         .collect::<Vec<_>>()
         .join(",")
+}
+
+// ── Sampling helper ───────────────────────────────────────────────────────────
+
+/// Sample an action from a probability distribution using a uniform `rand` in [0, 1).
+fn sample_action(probs: &[(KuhnAction, f64)], rand: f64) -> KuhnAction {
+    let mut cumulative = 0.0;
+    for (action, prob) in probs {
+        cumulative += prob;
+        if rand < cumulative {
+            return *action;
+        }
+    }
+    // Fallback for floating-point edge cases (e.g. rand ≈ 1.0).
+    probs.last().map(|(a, _)| *a).unwrap_or(KuhnAction::Check)
 }
 
 // ── JSON types ────────────────────────────────────────────────────────────────
@@ -79,6 +94,11 @@ struct GtoResult {
 }
 
 #[derive(Serialize)]
+struct HintResult {
+    probabilities: Vec<ProbEntry>,
+}
+
+#[derive(Serialize)]
 struct ErrorResult {
     error: String,
 }
@@ -98,17 +118,16 @@ fn err(msg: &str) -> String {
 #[wasm_bindgen]
 pub fn deal(rand: f64) -> String {
     const DEALS: [(KuhnCard, KuhnCard); 6] = [
-        (KuhnCard::Jack, KuhnCard::Queen),
-        (KuhnCard::Jack, KuhnCard::King),
+        (KuhnCard::Jack,  KuhnCard::Queen),
+        (KuhnCard::Jack,  KuhnCard::King),
         (KuhnCard::Queen, KuhnCard::Jack),
         (KuhnCard::Queen, KuhnCard::King),
-        (KuhnCard::King, KuhnCard::Jack),
-        (KuhnCard::King, KuhnCard::Queen),
+        (KuhnCard::King,  KuhnCard::Jack),
+        (KuhnCard::King,  KuhnCard::Queen),
     ];
     let idx = ((rand * 6.0).floor() as usize).min(5);
     let (p0, p1) = DEALS[idx];
 
-    // Use KuhnState to get legal_actions for the initial position.
     let state = KuhnState::new(p0, p1).expect("all DEALS pairs are distinct");
     let legal_actions = state
         .legal_actions()
@@ -190,7 +209,7 @@ pub fn apply_action(p0_card: &str, p1_card: &str, history: &str, action: &str) -
     }
 }
 
-/// Compute P1's GTO action given their card and the current history.
+/// Compute the AI's GTO action for any player given their card and the current history.
 ///
 /// `alpha` ∈ [0, 1/3] is the bluff-frequency parameter (Nash equilibrium = 1/3).
 /// `rand` ∈ [0, 1) is used to sample the mixed strategy.
@@ -198,83 +217,81 @@ pub fn apply_action(p0_card: &str, p1_card: &str, history: &str, action: &str) -
 /// Returns JSON: `{ action, probabilities: [{action, prob}] }`
 #[wasm_bindgen]
 pub fn gto_action(p1_card: &str, history: &str, alpha: f64, rand: f64) -> String {
-    // Clamp to the valid Nash range; the slider maxes at ~1/3.
     let alpha = alpha.clamp(0.0, 1.0 / 3.0);
 
     let card = match parse_card(p1_card) {
         Some(c) => c,
         None => return err(&format!("Invalid card '{p1_card}'")),
     };
-
-    // P1 acts at exactly two information sets: after P0 checks, or after P0 bets.
-    //
-    // Nash equilibrium (pkcore KuhnStrategy table):
-    //   After P0 check → P1: J bluffs α, Q checks, K bets
-    //   After P0 bet   → P1: J folds,   Q calls α, K calls
-    //
-    // The `alpha` parameter scales P1's bluff/call frequencies so the slider
-    // moves the AI smoothly from "never bluffs" (α=0) to Nash (α=1/3).
-    let (probs, action): (Vec<ProbEntry>, &str) = match history {
-        "Check" => match card {
-            KuhnCard::Jack => {
-                let p_bet = alpha;
-                (
-                    vec![
-                        ProbEntry { action: "Check".to_string(), prob: 1.0 - p_bet },
-                        ProbEntry { action: "Bet".to_string(), prob: p_bet },
-                    ],
-                    if rand < p_bet { "Bet" } else { "Check" },
-                )
-            }
-            KuhnCard::Queen => (
-                vec![
-                    ProbEntry { action: "Check".to_string(), prob: 1.0 },
-                    ProbEntry { action: "Bet".to_string(), prob: 0.0 },
-                ],
-                "Check",
-            ),
-            KuhnCard::King => (
-                vec![
-                    ProbEntry { action: "Check".to_string(), prob: 0.0 },
-                    ProbEntry { action: "Bet".to_string(), prob: 1.0 },
-                ],
-                "Bet",
-            ),
-        },
-
-        "Bet" => match card {
-            KuhnCard::Jack => (
-                vec![
-                    ProbEntry { action: "Fold".to_string(), prob: 1.0 },
-                    ProbEntry { action: "Call".to_string(), prob: 0.0 },
-                ],
-                "Fold",
-            ),
-            KuhnCard::Queen => {
-                let p_call = alpha;
-                (
-                    vec![
-                        ProbEntry { action: "Fold".to_string(), prob: 1.0 - p_call },
-                        ProbEntry { action: "Call".to_string(), prob: p_call },
-                    ],
-                    if rand < p_call { "Call" } else { "Fold" },
-                )
-            }
-            KuhnCard::King => (
-                vec![
-                    ProbEntry { action: "Fold".to_string(), prob: 0.0 },
-                    ProbEntry { action: "Call".to_string(), prob: 1.0 },
-                ],
-                "Call",
-            ),
-        },
-
-        _ => return err(&format!("gto_action called at non-P1 history '{history}'")),
+    let hist = match parse_history(history) {
+        Some(h) => h,
+        None => return err(&format!("Invalid history '{history}'")),
     };
+
+    let strategy = match KuhnStrategy::gto(alpha) {
+        Ok(s) => s,
+        Err(e) => return err(&format!("Invalid alpha: {e}")),
+    };
+
+    let info_set = KuhnInfoSet::new(card, hist);
+    let probs = strategy.action_probs(&info_set);
+
+    if probs.is_empty() {
+        return err(&format!(
+            "No strategy for history '{history}' — not a P1 decision point"
+        ));
+    }
+
+    let action = sample_action(probs, rand);
 
     serde_json::to_string(&GtoResult {
         action: action.to_string(),
-        probabilities: probs,
+        probabilities: probs
+            .iter()
+            .map(|(a, p)| ProbEntry { action: a.to_string(), prob: *p })
+            .collect(),
+    })
+    .unwrap_or_default()
+}
+
+/// Return P0's GTO action probabilities for the current info set, without sampling.
+///
+/// `p0_card` is P0's card; `history` is the action sequence at the point P0 is deciding.
+/// `alpha` ∈ [0, 1/3] is the bluff-frequency parameter.
+///
+/// Returns JSON: `{ probabilities: [{action, prob}] }`
+#[wasm_bindgen]
+pub fn p0_hint(p0_card: &str, history: &str, alpha: f64) -> String {
+    let alpha = alpha.clamp(0.0, 1.0 / 3.0);
+
+    let card = match parse_card(p0_card) {
+        Some(c) => c,
+        None => return err(&format!("Invalid card '{p0_card}'")),
+    };
+    let hist = match parse_history(history) {
+        Some(h) => h,
+        None => return err(&format!("Invalid history '{history}'")),
+    };
+
+    let strategy = match KuhnStrategy::gto(alpha) {
+        Ok(s) => s,
+        Err(e) => return err(&format!("Invalid alpha: {e}")),
+    };
+
+    let info_set = KuhnInfoSet::new(card, hist);
+    let probs = strategy.action_probs(&info_set);
+
+    if probs.is_empty() {
+        return err(&format!(
+            "No P0 strategy for history '{history}'"
+        ));
+    }
+
+    serde_json::to_string(&HintResult {
+        probabilities: probs
+            .iter()
+            .map(|(a, p)| ProbEntry { action: a.to_string(), prob: *p })
+            .collect(),
     })
     .unwrap_or_default()
 }

@@ -1,4 +1,4 @@
-.PHONY: build serve clean build-release
+.PHONY: build serve clean build-release install-playwright test test-ui
 
 # Build the WASM module into www/pkg (requires wasm-pack)
 build:
@@ -16,3 +16,16 @@ build-release:
 clean:
 	cargo clean
 	rm -rf www/pkg
+
+# Install Node dependencies and Playwright browsers (run once after cloning).
+install-playwright:
+	npm install
+	npx playwright install chromium
+
+# Run the full Playwright suite headlessly (also builds WASM first).
+test: build
+	npx playwright test
+
+# Open the Playwright interactive UI runner (local development only).
+test-ui: build
+	npx playwright test --ui
