@@ -309,6 +309,41 @@
       line-height: 1.4;
     }
 
+    /* ── Role toggle ──────────────────────────────────────────────────── */
+
+    .role-toggle {
+      display: flex;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 1rem;
+      border: 1px solid #2a4a2a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .role-btn {
+      flex: 1;
+      padding: 0.55rem 0.5rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: #0f1f0f;
+      color: #3a5a3a;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      letter-spacing: 0.03em;
+    }
+
+    .role-btn.active {
+      background: #1a3a1a;
+      color: #90c090;
+    }
+
+    .role-btn:hover:not(.active) {
+      background: #131f13;
+      color: #5a7a5a;
+    }
+
     /* ── Nash strategy table ───────────────────────────────────────────── */
 
     .strategy-wrap {
@@ -507,8 +542,8 @@
       padding: 0.2rem 0.65rem;
       font-size: 0.75rem;
       border-radius: 5px;
-      flex: 0;
-      min-width: 0;
+      flex: 0 0 auto;
+      white-space: nowrap;
     }
 
     .cfr-btn-run  { background: #2a4a2a; color: #90c090; border: 1px solid #3a6a3a; }
@@ -696,7 +731,12 @@
 <body>
 
 <h1>♠ Kuhn Poker Trainer ♥</h1>
-<p class="subtitle">Powered by pkcore + WebAssembly &nbsp;·&nbsp; You are P0, AI is P1</p>
+<p class="subtitle" id="subtitle">Powered by pkcore + WebAssembly &nbsp;·&nbsp; You are P0, AI is P1</p>
+
+<div class="role-toggle">
+  <button class="role-btn active" id="role-p0">Play as P0</button>
+  <button class="role-btn" id="role-p1">Play as P1</button>
+</div>
 
 <div class="score-bar">
   <div>Wins: <span class="s-win" id="sc-wins">0</span></div>
@@ -708,7 +748,7 @@
 
   <!-- Opponent (P1) -->
   <div class="card-wrap">
-    <div class="player-label">Opponent (P1)</div>
+    <div class="player-label" id="label-top">Opponent (P1)</div>
     <div class="card face-down" id="card-p1">?</div>
   </div>
 
@@ -722,7 +762,7 @@
   <!-- You (P0) -->
   <div class="card-wrap">
     <div class="card face-down" id="card-p0">?</div>
-    <div class="player-label">You (P0)</div>
+    <div class="player-label" id="label-bottom">You (P0)</div>
   </div>
 
   <!-- Action buttons -->
@@ -812,6 +852,8 @@ import init, { deal, apply_action, gto_action, p0_hint, full_strategy_table, run
 let wasmReady = false;
 let p0Card = null, p1Card = null, history = '';
 let score = { wins: 0, losses: 0, chips: 0 };
+let playingAsP1 = false;
+let handGen = 0; // incremented each new hand/mode-switch to cancel stale timeouts
 
 // Tracks the last info set where P0 acted, so the hint panel can live-update
 // when the alpha slider moves.
@@ -843,6 +885,11 @@ const cfrBody     = document.getElementById('cfr-body');
 const cfrRunBtn   = document.getElementById('cfr-run');
 const cfrStepBtn  = document.getElementById('cfr-step');
 const cfrPreset   = document.getElementById('cfr-preset');
+const roleP0Btn   = document.getElementById('role-p0');
+const roleP1Btn   = document.getElementById('role-p1');
+const labelTop    = document.getElementById('label-top');
+const labelBottom = document.getElementById('label-bottom');
+const subtitleEl  = document.getElementById('subtitle');
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
@@ -894,7 +941,7 @@ updateAlphaDisplay();
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 function updateScore(payoff) {
-  const net = payoff[0];
+  const net = playingAsP1 ? -payoff[0] : payoff[0];
   if (net > 0) score.wins++;
   else if (net < 0) score.losses++;
   score.chips += net;
@@ -1178,14 +1225,14 @@ function onPlayerAction(action) {
 
   disableActions();
   hideAiPanel();
-  clearActiveRow(); // P0 has acted; clear highlight while AI thinks.
+  clearActiveRow();
 
-  // Capture P0's info set before applying the action so the hint panel
-  // shows what GTO would have recommended at this decision point.
+  // Capture the user's info set for the hint panel.
   const historyAtDecision = history;
-  lastP0HintCard    = p0Card;
+  const userCard = playingAsP1 ? p1Card : p0Card;
+  lastP0HintCard    = userCard;
   lastP0HintHistory = historyAtDecision;
-  const hint = JSON.parse(p0_hint(p0Card, historyAtDecision, alphaValue()));
+  const hint = JSON.parse(p0_hint(userCard, historyAtDecision, alphaValue()));
   if (!hint.error) showP0Panel(hint.probabilities);
 
   const result = JSON.parse(apply_action(p0Card, p1Card, history, action));
@@ -1200,12 +1247,19 @@ function onPlayerAction(action) {
     return;
   }
 
-  // AI's turn (P1)
-  setStatus('Opponent is thinking\u2026', 'thinking');
-  setTimeout(() => aiTurn(result.legal_actions), AI_THINK_MS);
+  const gen = handGen;
+  if (playingAsP1) {
+    // AI (P0) acts again at Check,Bet
+    setStatus('Opponent (P0) is thinking\u2026', 'thinking');
+    setTimeout(() => { if (handGen === gen) aiTurnAsP0(); }, AI_THINK_MS);
+  } else {
+    // AI's turn (P1)
+    setStatus('Opponent is thinking\u2026', 'thinking');
+    setTimeout(() => { if (handGen === gen) aiTurnAsP1(); }, AI_THINK_MS);
+  }
 }
 
-function aiTurn() {
+function aiTurnAsP1() {
   const alpha = alphaValue();
   const result = JSON.parse(gto_action(p1Card, history, alpha, Math.random()));
   if (result.error) { setStatus('AI error: ' + result.error); return; }
@@ -1222,7 +1276,8 @@ function aiTurn() {
 
   if (applied.is_terminal) {
     setStatus('Opponent ' + aiAction.toLowerCase() + 's.');
-    setTimeout(() => endHand(applied.payoff), 400);
+    const gen = handGen;
+    setTimeout(() => { if (handGen === gen) endHand(applied.payoff); }, 400);
     return;
   }
 
@@ -1232,7 +1287,38 @@ function aiTurn() {
   setActiveRow('0:' + applied.history + ':' + p0Card);
 }
 
+function aiTurnAsP0() {
+  const alpha = alphaValue();
+  const result = JSON.parse(gto_action(p0Card, history, alpha, Math.random()));
+  if (result.error) { setStatus('AI error: ' + result.error); return; }
+
+  showAiPanel(result.probabilities);
+
+  const aiAction = result.action;
+  const applied = JSON.parse(apply_action(p0Card, p1Card, history, aiAction));
+  if (applied.error) { setStatus('Error: ' + applied.error); return; }
+
+  history = applied.history;
+  renderHistory(history);
+  potEl.textContent = computePot(history);
+
+  if (applied.is_terminal) {
+    setStatus('Opponent ' + aiAction.toLowerCase() + 's.');
+    const gen = handGen;
+    setTimeout(() => { if (handGen === gen) endHand(applied.payoff); }, 400);
+    return;
+  }
+
+  // User's turn as P1
+  setStatus('Opponent ' + aiAction.toLowerCase() + 's. Your turn.');
+  renderActionArea(applied.legal_actions);
+  setActiveRow('1:' + applied.history + ':' + p1Card);
+}
+
 function startHand() {
+  handGen++;
+  const gen = handGen;
+
   hideAiPanel();
   hideP0Panel();
   history = '';
@@ -1245,18 +1331,31 @@ function startHand() {
   p0Card = result.p0_card;
   p1Card = result.p1_card;
 
-  showCard(cardP0, p0Card);
-  hideCard(cardP1);
-
-  setStatus('Your turn. You act first.');
-  renderActionArea(result.legal_actions);
-  setActiveRow('0::' + p0Card);
+  if (playingAsP1) {
+    // User is P1 (top card); AI is P0 (bottom card)
+    showCard(cardP1, p1Card);
+    hideCard(cardP0);
+    setStatus('Opponent (P0) is thinking\u2026', 'thinking');
+    renderActionArea([]);
+    setTimeout(() => { if (handGen === gen) aiTurnAsP0(); }, AI_THINK_MS);
+  } else {
+    showCard(cardP0, p0Card);
+    hideCard(cardP1);
+    setStatus('Your turn. You act first.');
+    renderActionArea(result.legal_actions);
+    setActiveRow('0::' + p0Card);
+  }
 }
 
 function endHand(payoff) {
-  showCard(cardP1, p1Card);
+  // Reveal the AI's card (face-down throughout the hand)
+  if (playingAsP1) {
+    showCard(cardP0, p0Card); // AI is P0 (bottom card)
+  } else {
+    showCard(cardP1, p1Card); // AI is P1 (top card)
+  }
 
-  const net = payoff[0];
+  const net = playingAsP1 ? -payoff[0] : payoff[0];
   const abs = Math.abs(net);
   const chips = abs + ' chip' + (abs !== 1 ? 's' : '');
   if (net > 0)      setStatus('You win ' + chips + '!', 'win');
@@ -1269,6 +1368,48 @@ function endHand(payoff) {
   const dealBtn = document.getElementById('btn-deal');
   if (dealBtn) dealBtn.textContent = 'Deal Again';
 }
+
+// ── Role toggle ───────────────────────────────────────────────────────────────
+
+function switchToMode(asP1) {
+  if (playingAsP1 === asP1) return;
+  playingAsP1 = asP1;
+  handGen++; // cancel any pending AI callbacks
+
+  roleP0Btn.classList.toggle('active', !asP1);
+  roleP1Btn.classList.toggle('active', asP1);
+  subtitleEl.textContent = 'Powered by pkcore\u00a0+\u00a0WebAssembly\u00a0\u00b7\u00a0You are ' +
+    (asP1 ? 'P1, AI is P0' : 'P0, AI is P1');
+  labelTop.textContent    = asP1 ? 'You (P1)'      : 'Opponent (P1)';
+  labelBottom.textContent = asP1 ? 'Opponent (P0)' : 'You (P0)';
+
+  // Reset score
+  score = { wins: 0, losses: 0, chips: 0 };
+  document.getElementById('sc-wins').textContent = '0';
+  document.getElementById('sc-losses').textContent = '0';
+  const sc = document.getElementById('sc-chips');
+  sc.textContent = '+0';
+  sc.style.color = '#f0c040';
+
+  // Reset game state
+  hideAiPanel();
+  hideP0Panel();
+  clearActiveRow();
+  history = '';
+  p0Card = null;
+  p1Card = null;
+  lastP0HintCard = null;
+  lastP0HintHistory = null;
+  renderHistory('');
+  potEl.textContent = '2';
+  hideCard(cardP0);
+  hideCard(cardP1);
+  setStatus('Deal to start a new hand.');
+  renderActionArea(['deal']);
+}
+
+roleP0Btn.addEventListener('click', () => switchToMode(false));
+roleP1Btn.addEventListener('click', () => switchToMode(true));
 
 // ── CFR Convergence panel ─────────────────────────────────────────────────────
 
