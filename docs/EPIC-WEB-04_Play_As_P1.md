@@ -1,6 +1,6 @@
 # EPIC-WEB-04: Play as P1 (Responder Mode)
 
-**Status: Open**
+**Status: Complete**
 **Depends on:** EPIC-WEB-01 (P0 hint panel needed for symmetric feedback)
 
 ---
@@ -72,10 +72,10 @@ the hint always appears at the end of P1's action.
 
 ## Acceptance criteria
 
-- [ ] "Play as P1" toggle switches the user to P1; AI takes P0 actions using `KuhnStrategy::gto`.
-- [ ] P1's card is shown face-up from deal; P0's card is face-down until showdown.
-- [ ] AI P0 actions appear with the same `AI_THINK_MS` delay as AI P1 actions in P0 mode.
-- [ ] GTO hint panel shows P1 probabilities after the user acts as P1.
-- [ ] Score bar tracks P1 net chips correctly.
-- [ ] Switching modes mid-hand resets the current hand cleanly.
-- [ ] All five betting paths reachable in P1 mode (P0 can check or bet; user can respond).
+- [x] "Play as P1" toggle switches the user to P1; AI takes P0 actions using `KuhnStrategy::gto`.
+- [x] P1's card is shown face-up from deal; P0's card is face-down until showdown.
+- [x] AI P0 actions appear with the same `AI_THINK_MS` delay as AI P1 actions in P0 mode.
+- [x] GTO hint panel shows P1 probabilities after the user acts as P1.
+- [x] Score bar tracks P1 net chips correctly.
+- [x] Switching modes mid-hand resets the current hand cleanly.
+- [x] All five betting paths reachable in P1 mode (P0 can check or bet; user can respond).
