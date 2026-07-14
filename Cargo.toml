@@ -1,6 +1,6 @@
 [package]
 name = "pkkuhn-web"
-version = "0.0.40"
+version = "0.2.1"
 authors = ["electronicpanopticon <gaoler@electronicpanopticon.com>"]
 edition = "2024"
 rust-version = "1.91.0"
@@ -12,7 +12,7 @@ description = "Interactive Kuhn poker trainer powered by pkcore + WebAssembly."
 crate-type = ["cdylib"]
 
 [dependencies]
-pkcore = "0.2.0"
+pkcore = "0.2.1"
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
 serde = { version = "1.0", features = ["derive"] }
