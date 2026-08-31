@@ -382,7 +382,9 @@ pub fn full_strategy_table(alpha: f64) -> String {
 #[wasm_bindgen]
 pub fn run_cfr(iterations: u32) -> String {
     let mut cfr = KuhnCfr::new();
-    cfr.train(iterations);
+    if let Err(e) = cfr.train(iterations) {
+        return err(&format!("CFR training error: {e}"));
+    }
     let learned = cfr.average_strategy();
     let exploitability = cfr.exploitability();
 
@@ -431,7 +433,9 @@ pub fn run_cfr(iterations: u32) -> String {
 #[wasm_bindgen]
 pub fn exploitability_at(iterations: u32) -> String {
     let mut cfr = KuhnCfr::new();
-    cfr.train(iterations);
+    if let Err(e) = cfr.train(iterations) {
+        return err(&format!("CFR training error: {e}"));
+    }
     serde_json::to_string(&ExploitResult {
         iterations,
         exploitability: cfr.exploitability(),
